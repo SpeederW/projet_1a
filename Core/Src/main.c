@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "sequence.h"
+#include "lcd16x2.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +44,9 @@
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-
+float mesure=0;
+unsigned int data16bits;
+unsigned char buffer[5];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -57,6 +60,14 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// just for test
+
+/*
+note n1 = {PIN_NOTE_1, 1000, GPIO_A};
+note* data = {n1};
+sequence sequence = {n1, 1};
+*/
+
 /* USER CODE END 0 */
 
 /**
@@ -67,7 +78,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+  char buffer_lcd[16];
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -90,7 +101,14 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  lcd16x2_init_4bits(LCD_RS_GPIO_Port, LCD_RS_Pin, LCD_E_Pin,
+  LCD_D4_GPIO_Port, LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin);
+  lcd16x2_cursorShow(0);
+  lcd16x2_clear();
+  lcd16x2_setCursor(0, 0);
+  lcd16x2_printf("DATA : ");
+  lcd16x2_setCursor(1, 0);
+  lcd16x2_printf("VOLT : ");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -100,8 +118,24 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	mesure=((float)data16bits/32768)*2.048; // tension en volts
+	lcd16x2_setCursor(0, 7);
+	lcd16x2_itoa(data16bits,buffer_lcd);
+	lcd16x2_printf(buffer_lcd);
+	lcd16x2_printf(" ");
+	lcd16x2_setCursor(1, 7);
+	lcd16x2_ftoa(mesure,buffer_lcd,4);
+	lcd16x2_printf(buffer_lcd);
+	lcd16x2_printf(" V");
+	HAL_Delay(500);
+
+	/*
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-	HAL_Delay(100);
+	HAL_Delay(1000);
+	*/
+
+	// sequence_decode(sequence);
   }
   /* USER CODE END 3 */
 }
@@ -200,14 +234,27 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_3, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, LCD_RS_Pin|LCD_E_Pin|LCD_D4_Pin|LCD_D5_Pin
+                          |LCD_D6_Pin|LCD_D7_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PB3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pins : LCD_RS_Pin LCD_E_Pin LCD_D4_Pin LCD_D5_Pin
+                           LCD_D6_Pin LCD_D7_Pin */
+  GPIO_InitStruct.Pin = LCD_RS_Pin|LCD_E_Pin|LCD_D4_Pin|LCD_D5_Pin
+                          |LCD_D6_Pin|LCD_D7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LED_Pin */
+  GPIO_InitStruct.Pin = LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
