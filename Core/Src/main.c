@@ -62,14 +62,6 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-// just for test
-
-/*
-note n1 = {PIN_NOTE_1, 1000, GPIO_A};
-note* data = {n1};
-sequence sequence = {n1, 1};
-*/
-
 void LCD_init() {
 	lcd16x2_clear();
 	lcd16x2_setCursor(0, 0);
@@ -96,12 +88,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	switch(GPIO_Pin) {
 		case BUTTON_Push_Pin:
 			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
-			previous_state = current_state;
-			if(current_state == STATE_PLAY) {
-				current_state = STATE_SELECT;
-			} else {
-				current_state = STATE_PLAY;
-			}
+			current_state = STATE_PLAY;
 			LCD_Update_Required = 1;
 			break;
 		case BUTTON_Selector_Incr_Pin:
@@ -169,6 +156,16 @@ int main(void)
 	if(LCD_Update_Required) {
 		LCD_draw();
 		LCD_Update_Required = 0;
+	}
+	if(current_state == STATE_PLAY) {
+		// for test
+		note n1 = {PIN_NOTE_1, 1000, GPIOA};
+		note data[1] = {n1};
+		sequence sequence = {data, 1};
+		sequence_decode(sequence);
+		previous_state = current_state;
+		current_state = STATE_SELECT;
+		LCD_Update_Required = 1;
 	}
 	/*
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
