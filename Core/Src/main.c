@@ -32,7 +32,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define STATE_PLAY	 1
+#define STATE_SELECT 2
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -45,6 +46,8 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 unsigned int counter = 0;
+unsigned int current_state = STATE_SELECT;
+unsigned int previous_state = STATE_SELECT;
 volatile unsigned int LCD_Update_Required;
 /* USER CODE END PV */
 
@@ -67,9 +70,25 @@ note* data = {n1};
 sequence sequence = {n1, 1};
 */
 
+void LCD_init() {
+	lcd16x2_clear();
+	lcd16x2_setCursor(0, 0);
+	lcd16x2_printf("Sequence: ");
+	lcd16x2_setCursor(1, 0);
+	lcd16x2_printf("1 2 3 4 5 6 7 8");
+}
+
 void LCD_draw() {
-	lcd16x2_setCursor(0, 9);
-	lcd16x2_printf("%d", counter);
+	if(current_state == STATE_SELECT){
+		if(previous_state != STATE_SELECT) {
+			LCD_init();
+			previous_state = STATE_SELECT;
+		}
+		lcd16x2_setCursor(1, counter*2);
+	} else if(current_state == STATE_PLAY) {
+		lcd16x2_clear();
+		lcd16x2_printf("Lecture sequence");
+	}
 }
 
 // Interrupt handler
@@ -77,6 +96,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	switch(GPIO_Pin) {
 		case BUTTON_Push_Pin:
 			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
+			previous_state = current_state;
+			if(current_state == STATE_PLAY) {
+				current_state = STATE_SELECT;
+			} else {
+				current_state = STATE_PLAY;
+			}
 			LCD_Update_Required = 1;
 			break;
 		case BUTTON_Selector_Incr_Pin:
@@ -131,8 +156,7 @@ int main(void)
   LCD_D4_GPIO_Port, LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin);
   lcd16x2_cursorShow(1);
   lcd16x2_clear();
-  lcd16x2_setCursor(0, 0);
-  lcd16x2_printf("Counter: ");
+  LCD_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -144,6 +168,7 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	if(LCD_Update_Required) {
 		LCD_draw();
+		LCD_Update_Required = 0;
 	}
 	/*
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
