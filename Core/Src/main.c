@@ -44,9 +44,8 @@
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
-float mesure=0;
-unsigned int data16bits;
-unsigned char buffer[5];
+unsigned int counter = 0;
+volatile unsigned int LCD_Update_Required;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,6 +67,34 @@ note* data = {n1};
 sequence sequence = {n1, 1};
 */
 
+void LCD_draw() {
+	lcd16x2_setCursor(0, 9);
+	lcd16x2_printf("%d", counter);
+}
+
+// Interrupt handler
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	switch(GPIO_Pin) {
+		case BUTTON_Push_Pin:
+			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
+			LCD_Update_Required = 1;
+			break;
+		case BUTTON_Selector_Incr_Pin:
+			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
+			counter++;
+			LCD_Update_Required = 1;
+			break;
+		case BUTTON_Selector_Decr_Pin:
+			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
+			counter--;
+			LCD_Update_Required = 1;
+			break;
+		default:
+			LCD_Update_Required = 0;
+			break;
+	}
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -78,7 +105,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  char buffer_lcd[16];
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -103,12 +129,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
   lcd16x2_init_4bits(LCD_RS_GPIO_Port, LCD_RS_Pin, LCD_E_Pin,
   LCD_D4_GPIO_Port, LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin);
-  lcd16x2_cursorShow(0);
+  lcd16x2_cursorShow(1);
   lcd16x2_clear();
   lcd16x2_setCursor(0, 0);
-  lcd16x2_printf("DATA : ");
-  lcd16x2_setCursor(1, 0);
-  lcd16x2_printf("VOLT : ");
+  lcd16x2_printf("Counter: ");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -118,17 +142,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	mesure=((float)data16bits/32768)*2.048; // tension en volts
-	lcd16x2_setCursor(0, 7);
-	lcd16x2_itoa(data16bits,buffer_lcd);
-	lcd16x2_printf(buffer_lcd);
-	lcd16x2_printf(" ");
-	lcd16x2_setCursor(1, 7);
-	lcd16x2_ftoa(mesure,buffer_lcd,4);
-	lcd16x2_printf(buffer_lcd);
-	lcd16x2_printf(" V");
-	HAL_Delay(500);
-
+	if(LCD_Update_Required) {
+		LCD_draw();
+	}
 	/*
 	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
@@ -249,12 +265,31 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : BUTTON_Push_Pin */
+  GPIO_InitStruct.Pin = BUTTON_Push_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUTTON_Push_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : BUTTON_Selector_Incr_Pin BUTTON_Selector_Decr_Pin */
+  GPIO_InitStruct.Pin = BUTTON_Selector_Incr_Pin|BUTTON_Selector_Decr_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

@@ -71,6 +71,15 @@ void Error_Handler(void);
 #define LCD_D6_GPIO_Port GPIOA
 #define LCD_D7_Pin GPIO_PIN_7
 #define LCD_D7_GPIO_Port GPIOA
+#define BUTTON_Push_Pin GPIO_PIN_0
+#define BUTTON_Push_GPIO_Port GPIOB
+#define BUTTON_Push_EXTI_IRQn EXTI0_1_IRQn
+#define BUTTON_Selector_Incr_Pin GPIO_PIN_8
+#define BUTTON_Selector_Incr_GPIO_Port GPIOA
+#define BUTTON_Selector_Incr_EXTI_IRQn EXTI4_15_IRQn
+#define BUTTON_Selector_Decr_Pin GPIO_PIN_11
+#define BUTTON_Selector_Decr_GPIO_Port GPIOA
+#define BUTTON_Selector_Decr_EXTI_IRQn EXTI4_15_IRQn
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
