@@ -42,12 +42,15 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim3;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 unsigned int counter = 0;
 unsigned int current_state = STATE_SELECT;
 unsigned int previous_state = STATE_SELECT;
+int previous_count;
 volatile unsigned int LCD_Update_Required;
 /* USER CODE END PV */
 
@@ -55,6 +58,7 @@ volatile unsigned int LCD_Update_Required;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -65,12 +69,14 @@ static void MX_USART1_UART_Init(void);
 void LCD_init() {
 	lcd16x2_clear();
 	lcd16x2_setCursor(0, 0);
-	lcd16x2_printf("Sequence: ");
+	lcd16x2_printf("Sequence: %d", counter);
 	lcd16x2_setCursor(1, 0);
 	lcd16x2_printf("1 2 3 4 5 6 7 8");
 }
 
 void LCD_draw() {
+	lcd16x2_setCursor(0, 10);
+	lcd16x2_printf("%d", counter+1);
 	if(current_state == STATE_SELECT){
 		if(previous_state != STATE_SELECT) {
 			LCD_init();
@@ -83,22 +89,30 @@ void LCD_draw() {
 	}
 }
 
+void encoder_update(int count) {
+	if(count - previous_count > 0) { // Clockwise
+		counter++;
+		previous_count = count;
+		LCD_Update_Required = 1;
+	} else if(count - previous_count < 0){ // Counter clockwise
+		counter--;
+		previous_count = count;
+		LCD_Update_Required = 1;
+	}
+	// Clamp
+	if(counter < 0) {
+		counter = 8;
+	} else if(counter > 8) {
+		counter = 0;
+	}
+}
+
 // Interrupt handler
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	switch(GPIO_Pin) {
 		case BUTTON_Push_Pin:
 			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
 			current_state = STATE_PLAY;
-			LCD_Update_Required = 1;
-			break;
-		case BUTTON_Selector_Incr_Pin:
-			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
-			counter++;
-			LCD_Update_Required = 1;
-			break;
-		case BUTTON_Selector_Decr_Pin:
-			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
-			counter--;
 			LCD_Update_Required = 1;
 			break;
 		default:
@@ -138,12 +152,14 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   lcd16x2_init_4bits(LCD_RS_GPIO_Port, LCD_RS_Pin, LCD_E_Pin,
   LCD_D4_GPIO_Port, LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin);
   lcd16x2_cursorShow(1);
   lcd16x2_clear();
   LCD_init();
+  HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -153,6 +169,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	encoder_update((TIM3->CNT)>>2);
 	if(LCD_Update_Required) {
 		LCD_draw();
 		LCD_Update_Required = 0;
@@ -218,6 +235,55 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 0;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 99;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 0;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 0;
+  if (HAL_TIM_Encoder_Init(&htim3, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+
 }
 
 /**
@@ -290,14 +356,8 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : BUTTON_Push_Pin */
   GPIO_InitStruct.Pin = BUTTON_Push_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(BUTTON_Push_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : BUTTON_Selector_Incr_Pin BUTTON_Selector_Decr_Pin */
-  GPIO_InitStruct.Pin = BUTTON_Selector_Incr_Pin|BUTTON_Selector_Decr_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
@@ -309,9 +369,6 @@ static void MX_GPIO_Init(void)
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
-
-  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
