@@ -21,8 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "sequence.h"
 #include "lcd16x2.h"
+#include "midi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -107,7 +107,7 @@ void encoder_update(int count) {
 	}
 }
 
-// Interrupt handler
+// Interrupt handler (Push button)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	switch(GPIO_Pin) {
 		case BUTTON_Push_Pin:
@@ -169,17 +169,16 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	HAL_GPIO_TogglePin(GPIOA, OUT2_Pin);
+	HAL_GPIO_TogglePin(GPIOB, LED_Pin);
+	HAL_Delay(500);
 	encoder_update((TIM3->CNT)>>2);
 	if(LCD_Update_Required) {
 		LCD_draw();
 		LCD_Update_Required = 0;
 	}
 	if(current_state == STATE_PLAY) {
-		// for test
-		note n1 = {PIN_NOTE_1, 1000, GPIOA};
-		note data[1] = {n1};
-		sequence sequence = {data, 1};
-		sequence_decode(sequence);
+		midi_file_read(selection);
 		previous_state = current_state;
 		current_state = STATE_SELECT;
 		LCD_Update_Required = 1;
@@ -338,16 +337,22 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LCD_RS_Pin|LCD_E_Pin|LCD_D4_Pin|LCD_D5_Pin
-                          |LCD_D6_Pin|LCD_D7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LCD_RS_Pin|LCD_E_Pin|OUT1_Pin|LCD_D4_Pin
+                          |LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin|OUT2_Pin
+                          |OUT3_Pin|OUT4_Pin|OUT5_Pin|OUT6_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : LCD_RS_Pin LCD_E_Pin LCD_D4_Pin LCD_D5_Pin
-                           LCD_D6_Pin LCD_D7_Pin */
-  GPIO_InitStruct.Pin = LCD_RS_Pin|LCD_E_Pin|LCD_D4_Pin|LCD_D5_Pin
-                          |LCD_D6_Pin|LCD_D7_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(OUT7_GPIO_Port, OUT7_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : LCD_RS_Pin LCD_E_Pin OUT1_Pin LCD_D4_Pin
+                           LCD_D5_Pin LCD_D6_Pin LCD_D7_Pin OUT2_Pin
+                           OUT3_Pin OUT4_Pin OUT5_Pin OUT6_Pin */
+  GPIO_InitStruct.Pin = LCD_RS_Pin|LCD_E_Pin|OUT1_Pin|LCD_D4_Pin
+                          |LCD_D5_Pin|LCD_D6_Pin|LCD_D7_Pin|OUT2_Pin
+                          |OUT3_Pin|OUT4_Pin|OUT5_Pin|OUT6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -356,15 +361,15 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : BUTTON_Push_Pin */
   GPIO_InitStruct.Pin = BUTTON_Push_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(BUTTON_Push_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LED_Pin */
-  GPIO_InitStruct.Pin = LED_Pin;
+  /*Configure GPIO pins : LED_Pin OUT7_Pin */
+  GPIO_InitStruct.Pin = LED_Pin|OUT7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
