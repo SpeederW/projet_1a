@@ -9,7 +9,7 @@ typedef struct {
 	uint8_t time;
 } node;
 
-void process_data(uint8_t* data, uint16_t size);
+int process_data(uint8_t* data, uint8_t size);
 GPIO_TypeDef* note_to_port(int note);
 int note_to_pin(int note);
 

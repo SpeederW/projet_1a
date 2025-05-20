@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "lcd16x2.h"
+#include "midi_data_process.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,6 +34,7 @@
 /* USER CODE BEGIN PD */
 #define STATE_PLAY	 1
 #define STATE_SELECT 2
+#define STATE_WAIT_FOR_DATA 3
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,25 +46,25 @@
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart1;
-DMA_HandleTypeDef hdma_usart1_rx;
 
 /* USER CODE BEGIN PV */
 unsigned int counter = 0;
 unsigned int current_state = STATE_SELECT;
 unsigned int previous_state = STATE_SELECT;
+uint8_t rx_buffer[32];
 int previous_count;
 int data_size_received;
+int has_finished_playing = 0;
+int is_waiting_for_data = 0;
 uint8_t size = 0;
 volatile unsigned int LCD_Update_Required;
-uint8_t data_rx_buffer[32]; // small buffer
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_USART1_UART_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -90,6 +92,9 @@ void LCD_draw() {
 	} else if(current_state == STATE_PLAY) {
 		lcd16x2_clear();
 		lcd16x2_printf("Lecture sequence");
+	} else if(current_state == STATE_WAIT_FOR_DATA) {
+		lcd16x2_clear();
+		lcd16x2_printf("Attente donnees");
 	}
 }
 
@@ -117,7 +122,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	switch(GPIO_Pin) {
 		case BUTTON_Push_Pin:
 			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
-			current_state = STATE_PLAY;
+			current_state = STATE_WAIT_FOR_DATA;
+			data_size_received = 0;
+			is_waiting_for_data = 1;
 			LCD_Update_Required = 1;
 			break;
 		default:
@@ -128,12 +135,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 // Data reception (PC link)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	HAL_GPIO_TogglePin(GPIOB, LED_Pin);
 	if(!data_size_received) {
-		size = data_rx_buffer[0];
+		HAL_UART_Receive_IT(&huart1, rx_buffer, size);
 		data_size_received = 1;
-		HAL_UART_Receive_DMA(&huart1, data_rx_buffer, size);
-	} else if(data_size_received) {
-		process_data(data_rx_buffer, size);
+		is_waiting_for_data = 0;
+	} else {
+		if(!has_finished_playing)
+			HAL_UART_Receive_IT(&huart1, &size, 1);
+		has_finished_playing = process_data(rx_buffer, size);
 		data_size_received = 0;
 	}
 }
@@ -168,9 +178,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_USART1_UART_Init();
   MX_TIM3_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   lcd16x2_init_4bits(LCD_RS_GPIO_Port, LCD_RS_Pin, LCD_E_Pin,
   LCD_D4_GPIO_Port, LCD_D4_Pin, LCD_D5_Pin, LCD_D6_Pin, LCD_D7_Pin);
@@ -178,10 +187,6 @@ int main(void)
   lcd16x2_clear();
   LCD_init();
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
-
-  // For debug
-  uint8_t msg[] = "Liaison UART Série établie.";
-  HAL_UART_Transmit(&huart1, msg, sizeof(msg), 1000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -191,24 +196,34 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	/*
+	HAL_GPIO_TogglePin(GPIOA, OUT1_Pin);
+	HAL_GPIO_TogglePin(GPIOA, OUT2_Pin);
+	HAL_Delay(300);
+	*/
+
 	encoder_update((TIM3->CNT)>>2);
 	if(LCD_Update_Required) {
 		LCD_draw();
 		LCD_Update_Required = 0;
 	}
 	if(current_state == STATE_PLAY) {
-		HAL_UART_Receive_DMA(&huart1, data_rx_buffer, 1);
-		previous_state = current_state;
-		current_state = STATE_SELECT;
+		if(has_finished_playing) {
+			previous_state = current_state;
+			current_state = STATE_SELECT;
+			has_finished_playing = 0;
+			LCD_Update_Required = 1;
+		}
 		LCD_Update_Required = 1;
+	} else if(current_state == STATE_WAIT_FOR_DATA) {
+		if(!is_waiting_for_data) {
+			previous_state = current_state;
+			current_state = STATE_PLAY;
+			LCD_Update_Required = 1;
+		}
+		HAL_UART_Receive_IT(&huart1, &size, 1);
 	}
-	/*
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-	HAL_Delay(1000);
-	*/
-
-	// sequence_decode(sequence);
   }
   /* USER CODE END 3 */
 }
@@ -320,7 +335,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 38400;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -336,22 +351,6 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
-
-}
-
-/**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Channel2_3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 
 }
 

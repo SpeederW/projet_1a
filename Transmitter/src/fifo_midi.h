@@ -9,12 +9,10 @@
 #include "list_midi.h"
 
 // 1. le type fifo_midi_t est défini comme "pointeur sur maillon"
-typedef
-  struct _fifolink {
+typedef struct _fifolink {
     MIDI_Event val; /* un élément de la liste*/
     struct _fifolink *next; /* l'adresse du maillon suivant */
-  } * fifo_midi_t;
-
+} *fifo_midi_t;
 // 2. prototypes des fonctions de l'API du TAD File
 
 // Crée et retourne un file vide
@@ -54,5 +52,7 @@ void fifo_midi_print(fifo_midi_t queue);
 
 // FONCTION optionnelle : compte le nombre d'éléments dans la file
 int fifo_midi_length(fifo_midi_t queue);
+
+fifo_midi_t fifo_midi_insert(MIDI_Event evt, fifo_midi_t f);
 
 #endif

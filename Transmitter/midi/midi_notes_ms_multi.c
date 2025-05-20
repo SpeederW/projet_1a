@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "midi.h"
-#include "fifo_midi.h"
 
 unsigned int read_vlq(FILE *file) {
     unsigned int value = 0;
@@ -33,14 +31,14 @@ const char* note_name(int note, char* buffer) {
     return buffer;
 }
 
-fifo_midi_t process_track(FILE *file, unsigned short division, int track_number) {
+void process_track(FILE *file, unsigned short division, int track_number) {
     unsigned int tempo = 500000;
     double ticks_per_quarter = division;
     double time_ms = 0;
     unsigned char byte, status = 0;
+
     unsigned int chunk_size = read_uint(file);
     long track_end = ftell(file) + chunk_size;
-    fifo_midi_t event_queue = fifo_midi_new();
 
     while (ftell(file) < track_end) {
         unsigned int delta_time = read_vlq(file);
@@ -84,20 +82,16 @@ fifo_midi_t process_track(FILE *file, unsigned short division, int track_number)
             note_name(data1, name);
 
             if (status_type == 0x90 && data2 != 0) {
-                // printf("[Piste %d][Canal %d] Note ON  - Note: %3d (%s)  Force: %3d  Temps: %.2f ms\n", track_number, channel, data1, name, data2, time_ms);
-                MIDI_Event event = {time_ms, data1, data2};
-                fifo_midi_enqueue(event, event_queue);
+                printf("[Piste %d][Canal %d] Note ON  - Note: %3d (%s)  Force: %3d  Temps: %.2f ms\n", track_number, channel, data1, name, data2, time_ms);
             } else if (status_type == 0x80 || (status_type == 0x90 && data2 == 0)) {
-                // printf("[Piste %d][Canal %d] Note OFF - Note: %3d (%s)  Temps: %.2f ms\n", track_number, channel, data1, name, time_ms);
+                printf("[Piste %d][Canal %d] Note OFF - Note: %3d (%s)  Temps: %.2f ms\n", track_number, channel, data1, name, time_ms);
             } else if (status_type == 0xC0) {
-                // printf("[Piste %d][Canal %d] Program Change - Program: %3d  Temps: %.2f ms\n", track_number, channel, data1, time_ms);
+                printf("[Piste %d][Canal %d] Program Change - Program: %3d  Temps: %.2f ms\n", track_number, channel, data1, time_ms);
             } else {
-            	// TODO handle error
-                // printf("[Piste %d][Canal %d] Événement inconnu - Statut: 0x%02X, Data1: 0x%02X, Data2: 0x%02X\n", track_number, channel, status, data1, data2);
+                printf("[Piste %d][Canal %d] Événement inconnu - Statut: 0x%02X, Data1: 0x%02X, Data2: 0x%02X\n", track_number, channel, status, data1, data2);
             }
         }
     }
-    return event_queue;
 }
 
 int main(int argc, char *argv[]) {
@@ -124,21 +118,16 @@ int main(int argc, char *argv[]) {
     unsigned short format = read_ushort(file);
     unsigned short num_tracks = read_ushort(file);
     unsigned short division = read_ushort(file);
-    fifo_midi_t* tracks = calloc(num_tracks, sizeof(fifo_midi_t));
-    if (!tracks) {
-        fprintf(stderr, "Erreur d'allocation mémoire\n");
-        fclose(file);
-        return 1;
-    }
+
     for (int i = 0; i < num_tracks; ++i) {
         if (fread(chunk_id, 1, 4, file) != 4 || strncmp(chunk_id, "MTrk", 4) != 0) {
             fprintf(stderr, "Erreur de lecture de la piste %d\n", i);
             break;
         }
         printf("--- Lecture de la piste %d ---\n", i);
-        tracks[i] = process_track(file, division, i);
+        process_track(file, division, i);
     }
 
     fclose(file);
-    midi_decode(tracks, num_tracks);
+    return 0;
 }

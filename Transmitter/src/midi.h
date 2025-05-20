@@ -1,13 +1,15 @@
 #ifndef MIDI_H_
 #define MIDI_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <windows.h>
+#include "fifo_midi.h"
 #include "midi_decode.h"
+#include "serial_port.h"
 
-typedef struct {
-	uint32_t time;
-	int note;
-	uint8_t force;
-} MIDI_Event;
+#define NUM_THREADS 2
 
 unsigned int read_vlq(FILE* file);
 unsigned short read_ushort(FILE *file);

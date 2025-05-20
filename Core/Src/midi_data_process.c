@@ -1,14 +1,19 @@
 #include "midi_data_process.h"
 #include <stdio.h>
 
-void process_data(uint8_t* data, uint16_t size) {
+int process_data(uint8_t* data, uint8_t size) {
 	node queue[size/2];
 	node temp;
 	uint8_t i;
 	int note;
-	for(i=0; i<size/2; i++) {
+
+	if(data[0] == -1 && data[1] == -1) { // Fin de transmission
+		return 1;
+	}
+
+	for(i=0; i<=size/2; i += 2) {
 		temp.note = data[i];
-		temp.time = data[i*2];
+		temp.time = data[i+1];
 		queue[i] = temp;
 	}
 
@@ -26,6 +31,7 @@ void process_data(uint8_t* data, uint16_t size) {
 		note = queue[i].note;
 		HAL_GPIO_TogglePin(note_to_port(note), note_to_pin(note));
 	}
+	return 0;
 }
 
 GPIO_TypeDef* note_to_port(int note) {

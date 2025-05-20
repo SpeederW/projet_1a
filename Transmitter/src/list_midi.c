@@ -42,7 +42,7 @@ void list_midi_print(list_midi_t l) {
   printf("(");
   for ( p=l; ! list_midi_is_empty(p); p = p->next) {
     printf( "[" );
-    midi_print( p->val );
+    printf("%d", p->val.note );
     printf( "]" );
   }
   printf(")\n");

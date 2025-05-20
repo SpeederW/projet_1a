@@ -3,8 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdint.h>
 
-#include "midi.h"
+typedef struct {
+	uint32_t time;
+	int note;
+	uint8_t force;
+} MIDI_Event;
 
 // Fichier pris du BE n°10 d'informatique
 
@@ -31,7 +36,7 @@ MIDI_Event list_midi_first(list_midi_t l);
 list_midi_t list_midi_next(list_midi_t l);
 
 // Ajoute l'élément e en tête de la liste et retourne la nouvelle liste
-list_midi_t list_midi_add_first(midi_t e, list_midi_t l);
+list_midi_t list_midi_add_first(MIDI_Event e, list_midi_t l);
 
 // Supprime le maillon en tête de liste et retourne la nouvelle liste
 // PRECONDITION : liste non vide
