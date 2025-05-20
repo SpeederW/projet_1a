@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include "transmit.h"
+#include "serial_port.h"
 
 // Créer et configure une liaison série avec le STM32.
 HANDLE open_port() {
-    HANDLE port = CreateFileA(STM_COM_PORT, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE port = CreateFileA(STM_COM_PORT, GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if(port == INVALID_HANDLE_VALUE) { // Echec de l'ouverture du port
         printf("Fatal error");
         return 0;
@@ -40,7 +40,6 @@ HANDLE open_port() {
     return port;
 }
 
-// 
 int write_port(HANDLE port, char* buffer, size_t size) {
   DWORD written;
   if (!WriteFile(port, buffer, size, &written, NULL)) {
@@ -52,6 +51,26 @@ int write_port(HANDLE port, char* buffer, size_t size) {
     return 0;
   }
   return 1;
+}
+
+int read_port(HANDLE port, char* buffer, size_t size) {
+  DWORD bytesRead;
+  if (!ReadFile(port, buffer, size, &bytesRead, NULL)) {
+    printf("Echec de la lecture du port");
+    return 0;
+  }
+  return bytesRead;
+}
+
+void print_message(HANDLE port) {
+  char buffer[256]; // Adjust size as needed
+  int bytesRead = read_port(port, buffer, sizeof(buffer) - 1);
+  if (bytesRead > 0) {
+    buffer[bytesRead] = '\0'; // Null-terminate the string
+    printf("Message received: %s\n", buffer);
+  } else {
+    printf("No message received or error occurred.\n");
+  }
 }
 
 void transmit_size(HANDLE port, int event_count) {

@@ -1,7 +1,7 @@
-#include <midi_data_process.h>
+#include "midi_data_process.h"
 #include <stdio.h>
 
-void process_data(uint8_t data[32], uint8_t size) {
+void process_data(uint8_t* data, uint16_t size) {
 	node queue[size/2];
 	node temp;
 	uint8_t i;
@@ -14,7 +14,7 @@ void process_data(uint8_t data[32], uint8_t size) {
 
 	// Activation des pins
 	for(i=0; i<size/2; i++) {
-		note = queue[k].note;
+		note = queue[i].note;
 		HAL_GPIO_TogglePin(note_to_port(note), note_to_pin(note));
 	}
 
@@ -23,7 +23,15 @@ void process_data(uint8_t data[32], uint8_t size) {
 
 	// Désactivation des pins
 	for(i=0; i<size/2; i++) {
-		note = queue[k].note;
+		note = queue[i].note;
 		HAL_GPIO_TogglePin(note_to_port(note), note_to_pin(note));
 	}
+}
+
+GPIO_TypeDef* note_to_port(int note) {
+	return GPIOA;
+}
+
+int note_to_pin(int note) {
+	return OUT1_Pin;
 }

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "transmit.h"
+#include "serial_port.h"
 #include "midi_decode.h"
 
 void midi_decode(fifo_midi_t* sequence, unsigned short num_tracks) {

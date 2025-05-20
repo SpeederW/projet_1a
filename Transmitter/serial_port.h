@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-#define STM_COM_PORT TEXT("COM10")
+#define STM_COM_PORT TEXT("COM6")
 
 HANDLE open_port();
 void transmit_note(HANDLE port);
