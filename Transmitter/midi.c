@@ -100,7 +100,13 @@ fifo_midi_t process_track(FILE *file, unsigned short division, int track_number)
     return event_queue;
 }
 
-void midi_file_read(FILE* file) {
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <fichier_midi>\n", argv[0]);
+        return 1;
+    }
+
+    FILE *file = fopen(argv[1], "rb");
     if (!file) {
         perror("Erreur d'ouverture du fichier");
         return 1;
@@ -118,8 +124,12 @@ void midi_file_read(FILE* file) {
     unsigned short format = read_ushort(file);
     unsigned short num_tracks = read_ushort(file);
     unsigned short division = read_ushort(file);
-    fifo_midi_t tracks[num_tracks];
-
+    fifo_midi_t* tracks = calloc(num_tracks, sizeof(fifo_midi_t));
+    if (!tracks) {
+        fprintf(stderr, "Erreur d'allocation mémoire\n");
+        fclose(file);
+        return 1;
+    }
     for (int i = 0; i < num_tracks; ++i) {
         if (fread(chunk_id, 1, 4, file) != 4 || strncmp(chunk_id, "MTrk", 4) != 0) {
             fprintf(stderr, "Erreur de lecture de la piste %d\n", i);

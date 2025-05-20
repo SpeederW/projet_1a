@@ -25,7 +25,7 @@ int fifo_midi_is_empty(fifo_midi_t queue);
 
 // Ajoute l'élément e à la file  queue  et retourne la nouvelle file
 // Retourne NULL en cas d'erreur
-fifo_midi_t fifo_midi_enqueue(midi_t e, fifo_midi_t queue);
+fifo_midi_t fifo_midi_enqueue(MIDI_Event e, fifo_midi_t queue);
 
 // Retourne l'élément en tête de file (sans l'enlever de la file)
 // PRECONDITION : la file  queue  ne doit pas être vide

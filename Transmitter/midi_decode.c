@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "transmit.h"
 #include "midi_decode.h"
 
 void midi_decode(fifo_midi_t* sequence, unsigned short num_tracks) {
@@ -9,6 +10,10 @@ void midi_decode(fifo_midi_t* sequence, unsigned short num_tracks) {
 	fifo_midi_t buffer = fifo_midi_new();
 	fifo_midi_t buffer_start = fifo_midi_new();
 	int time_interval, actuation_time;
+	int event_count;
+
+	// Ouverture du port série
+	HANDLE port = open_port();
 
 	// On remet tout dans la même file en triant par temps d'activation
 	for(int i=1; i<num_tracks; i++) {
@@ -17,7 +22,7 @@ void midi_decode(fifo_midi_t* sequence, unsigned short num_tracks) {
 			temp_start = temp;
 			do {
 				if(p->val.time <= temp->val.time) { // Insertion d'un nouveau noeud
-					_fifolink new = {p->val, temp};
+					struct _fifolink new = {p->val, temp};
 					l->next = &new;
 				}
 				l = temp;
@@ -37,28 +42,24 @@ void midi_decode(fifo_midi_t* sequence, unsigned short num_tracks) {
 			time_interval = (temp->next)->val.time - temp->val.time;
 			list_midi_add_first(temp->val, buffer);
 			temp = temp->next;
+			event_count++;
 		}
 		list_midi_add_first(temp->val, buffer);
+		event_count++;
 
 		// Calcul du temps d'activation (ms)
 		actuation_time = 50; // arbitraire
 
-		// Activation des pins
+		// Envoi des données
 		buffer_start = buffer;
+		transmit_size(port, event_count);
 		do {
-			note_to_pin_toggle(buffer->val.note);
-			buffer = buffer->next;
-		} while(buffer != buffer_start);
-
-		HAL_Delay(actuation_time);
-
-		// Désactivation des pins
-		do {
-			note_to_pin_toggle(buffer->val.note);
+			transmit_event(port, buffer->val.note, actuation_time);
 			buffer = buffer->next;
 		} while(buffer != buffer_start);
 
 		// Nettoyage du buffer
+		event_count = 0;
 		buffer = list_midi_delete(buffer);
 		temp = temp->next;
 	} while(temp != temp_start);
@@ -70,10 +71,8 @@ void midi_decode(fifo_midi_t* sequence, unsigned short num_tracks) {
 	fifo_midi_delete(temp);
 	fifo_midi_delete(buffer);
 	fifo_midi_delete(buffer_start);
+
+	// Fermeture du port série
+	CloseHandle(port);
 }
 
-void note_to_pin_toggle(int note) {
-	switch(note) { // TODO
-
-	}
-}
