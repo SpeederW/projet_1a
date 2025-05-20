@@ -90,12 +90,12 @@ void Error_Handler(void);
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
-#define VCP_RX_Pin GPIO_PIN_15
-#define VCP_RX_GPIO_Port GPIOA
 #define LED_Pin GPIO_PIN_3
 #define LED_GPIO_Port GPIOB
 #define OUT7_Pin GPIO_PIN_6
 #define OUT7_GPIO_Port GPIOB
+#define VCP_RX_Pin GPIO_PIN_7
+#define VCP_RX_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
