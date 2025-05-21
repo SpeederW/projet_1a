@@ -121,11 +121,14 @@ void encoder_update(int count) {
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	switch(GPIO_Pin) {
 		case BUTTON_Push_Pin:
-			HAL_GPIO_TogglePin(GPIOB, LED_Pin);
-			current_state = STATE_WAIT_FOR_DATA;
-			data_size_received = 0;
-			is_waiting_for_data = 1;
-			LCD_Update_Required = 1;
+			if(current_state == STATE_PLAY) {
+				has_finished_playing = 1;
+			} else {
+				current_state = STATE_WAIT_FOR_DATA;
+				data_size_received = 0;
+				is_waiting_for_data = 1;
+				LCD_Update_Required = 1;
+			}
 			break;
 		default:
 			LCD_Update_Required = 0;
@@ -134,8 +137,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 // Data reception (PC link)
+
+/*
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	HAL_GPIO_TogglePin(GPIOB, LED_Pin);
+	lcd16x2_setCursor(0, 0);
+	lcd16x2_printf("bonjour");
 	if(!data_size_received) {
 		HAL_UART_Receive_IT(&huart1, rx_buffer, size);
 		data_size_received = 1;
@@ -147,6 +154,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		data_size_received = 0;
 	}
 }
+*/
 
 /* USER CODE END 0 */
 
@@ -210,19 +218,28 @@ int main(void)
 	}
 	if(current_state == STATE_PLAY) {
 		if(has_finished_playing) {
+			uint8_t msg[] = "STM - Lecture finie.";
+			HAL_UART_Transmit(&huart1, msg, sizeof(msg), 1000);
 			previous_state = current_state;
 			current_state = STATE_SELECT;
 			has_finished_playing = 0;
 			LCD_Update_Required = 1;
 		}
-		LCD_Update_Required = 1;
+		HAL_UART_Receive(&huart1, rx_buffer, size, 50);
+		has_finished_playing = process_data(rx_buffer, size);
+		while(HAL_UART_Receive(&huart1, &size, 1, 1000) != HAL_OK)
+			HAL_Delay(1);
+		HAL_GPIO_TogglePin(GPIOB, LED_Pin);
 	} else if(current_state == STATE_WAIT_FOR_DATA) {
 		if(!is_waiting_for_data) {
 			previous_state = current_state;
 			current_state = STATE_PLAY;
 			LCD_Update_Required = 1;
 		}
-		HAL_UART_Receive_IT(&huart1, &size, 1);
+		if(HAL_UART_Receive(&huart1, &size, 1, 1000) == HAL_OK) {
+			is_waiting_for_data = 0;
+		}
+		HAL_GPIO_TogglePin(GPIOB, LED_Pin);
 	}
   }
   /* USER CODE END 3 */
@@ -335,7 +352,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 38400;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -395,7 +412,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : BUTTON_Push_Pin */
   GPIO_InitStruct.Pin = BUTTON_Push_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(BUTTON_Push_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_Pin OUT7_Pin */

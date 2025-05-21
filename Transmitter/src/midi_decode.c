@@ -43,9 +43,12 @@ void midi_decode(HANDLE port, fifo_midi_t sequence[], unsigned short num_tracks)
 		} while(time_interval == 0);
 
 		// Envoi des données
-		Sleep(time_interval);
 		if(event_count > 0 && buffer != NULL) {
 			buffer_start = buffer;
+			if(time_interval < 60) { // On évite d'envoyer trop vite pour que le STM puisse gérer. Cela fausse légérement le rythme
+				time_interval = 60;
+			}
+			Sleep(time_interval);
 			transmit_size(port, event_count);
 			do {
 				transmit_event(port, buffer->val.note, ACTUATION_TIME);
@@ -59,8 +62,7 @@ void midi_decode(HANDLE port, fifo_midi_t sequence[], unsigned short num_tracks)
 		buffer = fifo_midi_new();
 	} while(temp != temp_start);
 
-	transmit_event(port, -1, -1); // Envoi d'un message de fin de transmission
-
+	transmit_event(port, 255, 255);
 	printf("midi_decode: Decodage termine.\n");
 
 	// Nettoyage de la mémoire

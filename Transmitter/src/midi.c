@@ -88,7 +88,7 @@ fifo_midi_t process_track(FILE *file, unsigned short division, int track_number)
                 printf("[Piste %d][Canal %d] Program Change - Program: %3d  Temps: %.2f ms\n", track_number, channel, data1, time_ms);
             } else {
             	// TODO handle error
-                printf("[Piste %d][Canal %d] Événement inconnu - Statut: 0x%02X, Data1: 0x%02X, Data2: 0x%02X\n", track_number, channel, status, data1, data2);
+                printf("[Piste %d][Canal %d] Evenement inconnu - Statut: 0x%02X, Data1: 0x%02X, Data2: 0x%02X\n", track_number, channel, status, data1, data2);
             }
         }
     }
@@ -150,12 +150,6 @@ int main() {
         midi_decode(port, tracks, num_tracks);
         
         printf("Fin de la lecture du fichier MIDI\n");
-
-        // Attente de la réponse du STM
-        int Status = SetCommMask(port, EV_RXCHAR);
-        DWORD dwEventMask; 
-        Status = WaitCommEvent(port, &dwEventMask, NULL);  
-        print_message(port);
         
         fclose(file);
     }

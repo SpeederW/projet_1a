@@ -7,7 +7,7 @@ int process_data(uint8_t* data, uint8_t size) {
 	uint8_t i;
 	int note;
 
-	if(data[0] == -1 && data[1] == -1) { // Fin de transmission
+	if(data[0] == 255 && data[1] == 255) { // Fin de transmission
 		return 1;
 	}
 
@@ -24,7 +24,7 @@ int process_data(uint8_t* data, uint8_t size) {
 	}
 
 	// Temps d'activation
-	HAL_Delay(100);
+	HAL_Delay(30);
 
 	// Désactivation des pins
 	for(i=0; i<size/2; i++) {
