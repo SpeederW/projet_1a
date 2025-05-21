@@ -62,6 +62,8 @@ void midi_decode(HANDLE port, fifo_midi_t sequence[], unsigned short num_tracks)
 		buffer = fifo_midi_new();
 	} while(temp != temp_start);
 
+	// Envoi de l'évenement de fin de transmission
+	transmit_size(port, 1);
 	transmit_event(port, 255, 255);
 	printf("midi_decode: Decodage termine.\n");
 
