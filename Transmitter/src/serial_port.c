@@ -3,7 +3,7 @@
 
 
 HANDLE open_port() {
-    HANDLE port = CreateFileA("COM6", GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+    HANDLE port = CreateFileA("COM4", GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
     if (port == INVALID_HANDLE_VALUE) {
         printf("open_port: Erreur fatale à l'ouverture du port COM\n");
         return INVALID_HANDLE_VALUE;
@@ -40,7 +40,7 @@ HANDLE open_port() {
         return INVALID_HANDLE_VALUE;
     }
 
-    serial_state.BaudRate = 9600;
+    serial_state.BaudRate = 115200;
     serial_state.ByteSize = 8;
     serial_state.Parity = NOPARITY;
     serial_state.StopBits = ONESTOPBIT;
