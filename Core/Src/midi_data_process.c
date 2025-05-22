@@ -24,7 +24,7 @@ int process_data(uint8_t* data, uint8_t size) {
 	}
 
 	// Temps d'activation
-	HAL_Delay(30);
+	HAL_Delay(ACTUATION_TIME);
 
 	// Désactivation des pins
 	for(i=0; i<size/2; i++) {
@@ -43,30 +43,45 @@ GPIO_TypeDef* note_to_port(int note) {
 }
 
 int note_to_pin(int note) {
-	switch (note){
-		case (note %12 == 0):
-				return GPIO_OUT1;
-		case (note %12 == 1):
-				return GPIO_OUT1;
-		case (note %12 == 2):
-				return GPIO_OUT2;
-		case (note %12 == 3):
-				return GPIO_OUT2;
-		case (note %12 == 4):
-				return GPIO_OUT2;
-		case (note %12 == 5):
-				return GPIO_OUT3;
-		case (note %12 == 6):
-				return GPIO_OUT4;
-		case (note %12 == 7):
-				return GPIO_OUT5;
-		case (note %12 == 8):
-				return GPIO_OUT5;
-		case (note %12 == 9):
-				return GPIO_OUT6;
-		case (note %12 == 10):
-				return GPIO_OUT6;
-		case (note %12 == 11):
-				return GPIO_OUT7;
+	switch (note % 12){
+		case (0):
+				return OUT1_Pin;
+				break;
+		case (1):
+				return OUT1_Pin;
+				break;
+		case (2):
+				return OUT2_Pin;
+				break;
+		case (3):
+				return OUT2_Pin;
+				break;
+		case (4):
+				return OUT3_Pin;
+				break;
+		case (5):
+				return OUT4_Pin;
+				break;
+		case (6):
+				return OUT4_Pin;
+				break;
+		case (7):
+				return OUT5_Pin;
+				break;
+		case (8):
+				return OUT5_Pin;
+				break;
+		case (9):
+				return OUT6_Pin;
+				break;
+		case (10):
+				return OUT6_Pin;
+				break;
+		case (11):
+				return OUT7_Pin;
+				break;
 	}
+	perror("erreur, note non reconnue");
+	return -1;
 }
+
