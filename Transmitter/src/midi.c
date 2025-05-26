@@ -1,5 +1,17 @@
 #include "midi.h"
 
+
+/**
+ * @brief Lit une valeur entière encodée en VLQ (Variable Length Quantity) depuis un fichier.
+ *
+ * Cette fonction lit un nombre entier non signé à partir d'un fichier, où la valeur est encodée
+ * au format VLQ (utilisé notamment dans les fichiers MIDI). Elle lit les octets un à un, en
+ * assemblant les 7 bits de poids faible de chaque octet, jusqu'à ce qu'un octet avec le bit de
+ * poids fort à 0 soit rencontré.
+ *
+ * @param file Pointeur vers le fichier à lire (de type FILE *).
+ * @return La valeur entière lue depuis le fichier.
+ */
 unsigned int read_vlq(FILE *file) {
     unsigned int value = 0;
     unsigned char byte;
@@ -22,6 +34,17 @@ unsigned int read_uint(FILE *file) {
     return (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
 }
 
+/**
+ * @brief Génère le nom d'une note MIDI sous forme de chaîne de caractères.
+ *
+ * Cette fonction prend en entrée un numéro de note MIDI et un tampon de caractères,
+ * puis écrit dans ce tampon le nom de la note (par exemple "DO#", "LA", etc.) suivi de l'octave,
+ * séparés par une virgule (par exemple "LA,4").
+ *
+ * @param note Numéro de la note MIDI (entier).
+ * @param buffer Tampon de caractères où sera stocké le nom de la note généré.
+ * @return Un pointeur vers le tampon contenant le nom de la note.
+ */
 const char* note_name(int note, char* buffer) {
     const char* names[] = {"DO", "DO#", "RE", "RE#", "MI", "FA", "FA#", "SOL", "SOL#", "LA", "LA#", "SI"};
     int octave = (note / 12) - 1;
@@ -29,6 +52,19 @@ const char* note_name(int note, char* buffer) {
     return buffer;
 }
 
+/**
+ * @brief Traite une piste MIDI à partir d'un fichier et extrait les événements de note.
+ *
+ * Cette fonction lit une piste MIDI à partir du fichier donné, en utilisant la division temporelle spécifiée,
+ * et le numéro de piste pour l'affichage. Elle gère les événements MIDI standards, y compris les changements de tempo,
+ * les événements de note ON/OFF, les changements de programme, et ignore les événements système exclusifs (SysEx).
+ * Les événements de note ON sont ajoutés à une file d'attente FIFO pour un traitement ultérieur.
+ *
+ * @param file Pointeur vers le fichier MIDI ouvert en lecture.
+ * @param division Nombre de ticks par noire (quarter note) pour la synchronisation temporelle.
+ * @param track_number Numéro de la piste en cours de traitement (utilisé pour l'affichage).
+ * @return fifo_midi_t File d'attente contenant les événements MIDI (note ON) extraits de la piste.
+ */
 fifo_midi_t process_track(FILE *file, unsigned short division, int track_number) {
     unsigned int tempo = 500000;
     double ticks_per_quarter = division;

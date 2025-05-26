@@ -1,5 +1,21 @@
 #include "midi_decode.h"
 
+/**
+ * @brief Traite les données MIDI contenues dans la séquence, puis les traduit en commandes
+ *        transmises au STM32 via la liaison série.
+ *
+ * Cette fonction analyse les événements MIDI présents dans la séquence fournie,
+ * effectue le traitement nécessaire (conversion ou adaptation
+ * des messages MIDI), puis génère et envoie les commandes appropriées au microcontrôleur
+ * STM32 à travers une communication série.
+ *
+ * @param sequence Pointeur vers la structure contenant les données MIDI à traiter.
+ * @param num_tracks Nombre de pistes MIDI dans la séquence.
+ * @param port Descripteur de la liaison série utilisée pour communiquer avec le STM32.
+ * 
+ * @note Assurez-vous que la liaison série avec le STM32 est correctement initialisée
+ *       avant d'appeler cette fonction.
+ */
 void midi_decode(HANDLE port, fifo_midi_t sequence[], unsigned short num_tracks) {
 	fifo_midi_t temp = sequence[1]->next; 
 	fifo_midi_t temp_start = fifo_midi_new();
