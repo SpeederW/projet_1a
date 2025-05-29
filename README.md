@@ -3,7 +3,7 @@
 Ce projet implémente un métallophone automatisé contrôlé par un microcontrôleur **STM32** et un ordinateur. Il se compose de deux parties distinctes :
 
 - 🎛️ **Partie microcontrôleur (STM32)** : interface utilisateur locale et contrôle des mailloches
-- 💻 **Partie PC** : lecture de fichiers MIDI et transmission des commandes via liaison série virtuelle
+- 💻 **Partie PC** : lecture de fichiers MIDI et transmission des commandes via liaison série virtuelle (Dossier "Transmitter")
 
 ---
 
